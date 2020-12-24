@@ -1,4 +1,4 @@
-import requests, json, random, urllib.parse, os, hashlib
+import requests, json, random, urllib.parse, os, hashlib, re
 
 def auth(demo = True):
 	login = "ЛОГИН К МЭШ"
@@ -42,18 +42,28 @@ def checkans(data, cookies):
 	else:
 		return False
 
+#Фикс. Спасибо, https://vk.com/6x88y9
 def get_variant(url):
 	url = urllib.parse.urlparse(url).path
 	url = url.split("/")
-	authd = auth(False)
-	cookies = {"auth_token": authd['authentication_token'], "profile_id": str(authd['profiles'][0]['user_id']), "profile_id": str(authd['id']), "udacl": "resh"}
-	url = "https://uchebnik.mos.ru/exam/rest/secure/api/binding/"+url[4]+"/spec"
+	return url[4]
 
-	r = requests.get(url, cookies=cookies)
-	r = json.loads(r.text)['version_info']['actual_version_id']
-	return r
+def math(string):
+	string = string.replace("\\", "")
+	r = re.compile("dfrac{(.*?)}{(.*?)}")
+	for i in r.findall(string):
+		string = string.replace("dfrac{"+str(i[0])+"}{"+str(i[1])+"}", str(i[0])+"/"+str(i[1]))
+	string = string.replace("cdot", "*")
+	r = re.compile("sqrt{(.*?)}")
+	for i in r.findall(string):
+		string = string.replace("sqrt{"+str(i)+"}", "Корень из "+str(i))
+	r = re.compile("(.*?)\^(.*)")
+	for i in r.findall(string):
+		string = string.replace(str(i[0])+"^"+str(i[1]), str(i[0])+" в степени "+str(i[1]))
+	return string
 
-def get_answers(variant):
+#Фикс. Спасибо, https://vk.com/6x88y9
+def get_answers(variant, c_type="spec"):
 	allanswers = ""
 
 	skip = 0
@@ -61,7 +71,7 @@ def get_answers(variant):
 	unknown = []
 
 	url = "https://uchebnik.mos.ru/exam/rest/secure/api/training/generate"
-	data = {"generation_context_type": "spec", "generation_by_id": variant}
+	data = {"generation_context_type": c_type, "generation_by_id": variant}
 
 	authd = auth()
 	cookies = {"auth_token": authd['authentication_token'], "profile_id": str(authd['profiles'][0]['user_id']), "profile_id": str(authd['id']), "udacl": "resh"}
@@ -84,10 +94,16 @@ def get_answers(variant):
 					for c in i['test_task']['question_elements']:
 						if 'text' in c:
 							temp = temp+c['text'].strip()+" "
+						if c['content'] != []:
+							if(c['content'][0]['type'] == "content/math"):
+								temp = temp+math(c['content'][0]['content'])+" "
 						if 'relative_url' in c:
 							if(wa == 0):
 								temp = temp+c['relative_url']
 								wa = 1
+					if x['content'] != []:
+						if x['content'][0]['type'] == "content/math":
+							x['text'] = x['text'] + math(x['content'][0]['content'])
 					temp2 = temp2+temp+" - "+x['text']
 					temp2 = temp2.strip()+"\n"
 					allanswers = allanswers+temp2
@@ -104,6 +120,9 @@ def get_answers(variant):
 			for n in i['test_task']['question_elements']:
 						if 'text' in n:
 							temp2 = temp2+n['text'].strip()+" "
+						if n['content'] != []:
+							if(n['content'][0]['type'] == "content/math"):
+								temp = temp+math(n['content'][0]['content'])+" "
 						if 'relative_url' in n:
 							if(wa == 0):
 								temp2 = temp2+n['relative_url']
@@ -112,6 +131,9 @@ def get_answers(variant):
 			for x in c:
 				for b in temp:
 					if(x['id'] == b):
+						if x['content'] != []:
+							if x['content'][0]['type'] == "content/math":
+								x['text'] = x['text'] + math(x['content'][0]['content'])
 						temp2 = temp2+x['text']+", "
 			temp2 = temp2[:-2]
 			allanswers = allanswers+temp2+"\n"
@@ -129,6 +151,9 @@ def get_answers(variant):
 			for n in i['test_task']['question_elements']:
 				if 'text' in n:
 						temp2 = temp2+n['text'].strip()+" "
+				if n['content'] != []:
+					if(n['content'][0]['type'] == "content/math"):
+						temp = temp+math(n['content'][0]['content'])+" "
 				if 'relative_url' in n:
 						if(wa == 0):
 							temp2 = temp2+n['relative_url']
@@ -147,6 +172,9 @@ def get_answers(variant):
 			for n in i['test_task']['question_elements']:
 				if 'text' in n:
 						temp2 = temp2+n['text'].strip()+" "
+				if n['content'] != []:
+					if(n['content'][0]['type'] == "content/math"):
+						temp = temp+math(n['content'][0]['content'])+" "
 				if 'relative_url' in n:
 						if(wa == 0):
 							temp2 = temp2+n['relative_url']
@@ -155,6 +183,9 @@ def get_answers(variant):
 			for x in c:
 				for b in data2["answers"][i['test_task']['id']]['ids']:
 					if(x['id'] == b):
+						if x['content'] != []:
+							if x['content'][0]['type'] == "content/math":
+								x['text'] = x['text'] + math(x['content'][0]['content'])
 						temp2 = temp2+x['text']+", "
 			temp2 = temp2[:-2]
 			allanswers = allanswers+temp2+"\n"
@@ -190,10 +221,16 @@ def get_answers(variant):
 			for n in data2["answers"][i['test_task']['id']]['match'].items():
 				for x in i['test_task']['answer']['options']:
 					if n[1][0] == x['id']:
+						if x['content'] != []:
+							if x['content'][0]['type'] == "content/math":
+								x['text'] = x['text'] + math(x['content'][0]['content'])
 						temp2[n[0]] = x['text'] 
 			for n in data2["answers"][i['test_task']['id']]['match'].items():
 				for x in i['test_task']['answer']['options']:
 					if n[0] == x['id']:
+						if x['content'] != []:
+							if x['content'][0]['type'] == "content/math":
+								x['text'] = x['text'] + math(x['content'][0]['content'])
 						temp3 = temp3+x['text']+" - "+temp2[n[0]]+", "
 			temp3 = temp3[:-2]
 			allanswers = allanswers+temp3+"\n"
@@ -207,6 +244,9 @@ def get_answers(variant):
 				for b in i['test_task']['answer']['text_position']:
 					for c in b['options']:
 						if(n['id'] == c['id']):
+							if c['content'] != []:
+								if c['content'][0]['type'] == "content/math":
+									c['text'] = c['text'] + math(c['content'][0]['content'])
 							temp = temp+c['text']+", "
 			temp = temp[:-2]
 			allanswers = allanswers+temp+"\n"
@@ -230,6 +270,9 @@ def get_answers(variant):
 					for n in data2["answers"][i['test_task']['id']]['text_position_answer']:
 						for b in i['test_task']['answer']['options']:
 							if(n['id'] == b['id']):
+								if b['content'] != []:
+									if b['content'][0]['type'] == "content/math":
+										b['text'] = b['text'] + math(b['content'][0]['content'])
 								temp = temp+b['text']+", "
 					temp = temp[:-2]
 					allanswers = allanswers+temp+"\n"
