@@ -94,9 +94,10 @@ def get_answers(variant, c_type="spec"):
 					for c in i['test_task']['question_elements']:
 						if 'text' in c:
 							temp = temp+c['text'].strip()+" "
-						if c['content'] != []:
-							if(c['content'][0]['type'] == "content/math"):
-								temp = temp+math(c['content'][0]['content'])+" "
+						if 'content' in c:
+							if c['content'] != []:
+								if(c['content'][0]['type'] == "content/math"):
+									temp = temp+math(c['content'][0]['content'])+" "
 						if 'relative_url' in c:
 							if(wa == 0):
 								temp = temp+c['relative_url']
