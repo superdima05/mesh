@@ -2,7 +2,7 @@
 
     
 # Текущий статус
-[:heavy_check_mark:] Работает (25.12.2020)
+[:x:] Не работает (09.02.2021)
     
 # Благодарности
  - Большое спасибо https://vk.com/6x88y9 за фикс библиотеки. Обсуждение было [тут](https://github.com/superdima05/mesh/issues/1)
@@ -17,5 +17,5 @@
   [:x:] - Метод не работает
   [:heavy_check_mark:] - Метод работает
   1. [:heavy_check_mark:] Получить номер варинта (если тест имеет только идентификатор) `get_variant(Cсылка на тест. Пример ссылки: https://uchebnik.mos.ru/exam/test/test_by_binding/9792593/homework/120414331?generation_context_type=homework)`
-  2. [:heavy_check_mark:] Получить ответы `get_answers(Номер варианта, тип (читать ниже))`
+  2. [:x:] Получить ответы `get_answers(Номер варианта, тип (читать ниже))`
   3. В тип надо укзать либо 'spec', либо 'homework'. Указываем 'spec', если не использовали метод get_variant(). Если использовали, то используем тип 'homework'
