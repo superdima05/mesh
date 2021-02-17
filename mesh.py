@@ -81,10 +81,10 @@ def get_answers(variant, c_type="spec"):
 	data = {"generation_context_type": c_type, "generation_by_id": variant}
 
 	if(c_type == "spec"):
-		url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group" #Спасибо, https://github.com/mishailovic, за нахождение нового endpoint'а в МЭШ! https://github.com/superdima05/mesh/issues/3
+		url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group"
 		data = {"test_type":"training_test", "generation_context_type": c_type, "generation_by_id": variant}
 	if(c_type == "homework"):
-		url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group" #Спасибо, https://github.com/mishailovic, за нахождение нового endpoint'а в МЭШ! https://github.com/superdima05/mesh/issues/3
+		url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group"
 		data = {"test_type":"training_test","generation_context_type":"homework","generation_by_id": variant}
 
 	authd = auth()
@@ -153,6 +153,7 @@ def get_answers(variant, c_type="spec"):
 			c = i['test_task']['answer']['options']
 			if(i['test_task']['answer']['right_answer']['ids_order'] != None):
 				data2["answers"][i['test_task']['id']] = {"id": i['test_task']['answer']['right_answer']['ids_order'], "@answer_type": i['test_task']['answer']['type'], "correct": 1}
+				temp = i['test_task']['answer']['right_answer']['ids_order']
 			while checkans(data2, cookies) == False:
 				random.shuffle(c)
 				temp = []
@@ -207,7 +208,7 @@ def get_answers(variant, c_type="spec"):
 						if(wa == 0):
 							temp2 = temp2+n['relative_url']
 							wa = 1
-			temp2 = "title: "+temp2+" answer:"+str(b)
+			temp2 = "title: "+temp2+" answer:"+str(i['test_task']['answer']['right_answer']['number'])
 			allanswers = allanswers+temp2+"\n"
 		elif i['test_task']['answer']['type'] == 'answer/multiple':
 			if(i['test_task']['answer']['right_answer']['ids'] != None):
@@ -241,14 +242,14 @@ def get_answers(variant, c_type="spec"):
 			temp2 = temp2[:-2]
 			allanswers = allanswers+temp2+"\n"
 		elif i['test_task']['answer']['type'] == 'answer/groups':
-			while checkans(data2, cookies) == False:
+			'''while checkans(data2, cookies) == False:
 				data2["answers"][i['test_task']['id']] = {"groups": [], "@answer_type": i['test_task']['answer']['type']}
 				for b in i['test_task']['answer']['options']:
 					if('type' in b and b['type'] == 'option_type/group'):
 						data2["answers"][i['test_task']['id']]['groups'].append({"group_id": b['id'], "options_ids": []})
 				for x in i['test_task']['answer']['options']:
 					data2["answers"][i['test_task']['id']]['groups'][random.randint(0, len(data2["answers"][i['test_task']['id']]['groups'])-1)]['options_ids'].append(x['id'])
-				print(data2["answers"][i['test_task']['id']])
+				print(data2["answers"][i['test_task']['id']])'''
 			continue
 		elif i['test_task']['answer']['type'] == 'answer/match':
 			if(i['test_task']['answer']['right_answer']['match'] != None):
