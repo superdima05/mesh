@@ -81,10 +81,10 @@ def get_answers(variant, c_type="spec"):
 	data = {"generation_context_type": c_type, "generation_by_id": variant}
 
 	if(c_type == "spec"):
-		url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group"
+		url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group" #Спасибо, https://github.com/mishailovic, за нахождение нового endpoint'а в МЭШ! https://github.com/superdima05/mesh/issues/3
 		data = {"test_type":"training_test", "generation_context_type": c_type, "generation_by_id": variant}
 	if(c_type == "homework"):
-		url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group"
+		url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group" #Спасибо, https://github.com/mishailovic, за нахождение нового endpoint'а в МЭШ! https://github.com/superdima05/mesh/issues/3
 		data = {"test_type":"training_test","generation_context_type":"homework","generation_by_id": variant}
 
 	authd = auth()
