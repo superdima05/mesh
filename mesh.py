@@ -3,6 +3,7 @@ import requests, json, random, urllib.parse, os, hashlib, re
 def auth(demo = True):
 	login = "ЛОГИН К МЭШ"
 	password = "ПАРОЛЬ К МЭШ"
+
 	f = ""
 	if(os.path.exists("last")):
 		f2 = open("last", "r")
@@ -37,6 +38,12 @@ def checkans(data, cookies):
 	url = "https://uchebnik.mos.ru/exam/rest/secure/api/training/result_statistic"
 	r = requests.post(url, data=json.dumps(data), cookies=cookies, headers={"Content-type": "application/json"})
 	r = json.loads(r.text)
+	for i in data['answers']:
+		try:
+			if(data['answers'][i]['correct'] == 1):
+				return True
+		except Exception:
+			pass
 	if(r['tasks_answered_correct_count'] == 1):
 		return True
 	else:
@@ -73,7 +80,15 @@ def get_answers(variant, c_type="spec"):
 	url = "https://uchebnik.mos.ru/exam/rest/secure/api/training/generate"
 	data = {"generation_context_type": c_type, "generation_by_id": variant}
 
+	if(c_type == "spec"):
+		url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group"
+		data = {"test_type":"training_test", "generation_context_type": c_type, "generation_by_id": variant}
+	if(c_type == "homework"):
+		url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group"
+		data = {"test_type":"training_test","generation_context_type":"homework","generation_by_id": variant}
+
 	authd = auth()
+
 	cookies = {"auth_token": authd['authentication_token'], "profile_id": str(authd['profiles'][0]['user_id']), "profile_id": str(authd['id']), "udacl": "resh"}
 
 	r = requests.post(url, data=json.dumps(data), cookies=cookies, headers={"Content-type": "application/json"})
@@ -81,12 +96,38 @@ def get_answers(variant, c_type="spec"):
 
 	data2 = {"answers": {}}
 	for i in r:
+		#print(i['test_task'])
 		data2["answers"][i['test_task']['id']] = None
 
 	for i in r:
-		if i['test_task']['answer']['type'] == 'answer/single':
+		if i['test_task']['answer']['type'] == 'answer/string':
+			data2["answers"][i['test_task']['id']] = {"string": i['test_task']['answer']['right_answer']['string'], "@answer_type": i['test_task']['answer']['type'], "correct": 1}
+			if(checkans(data2, cookies)):
+				temp2 = ""
+				wa = 0
+				for n in i['test_task']['question_elements']:
+					if 'text' in n:
+							temp2 = temp2+n['text'].strip()+" "
+					if 'content' in n:
+						if(n['content'] == []):
+							continue
+						if(n['content'][0]['type'] == "content/math"):
+							temp2 = temp2+math(n['content'][0]['content'])+" "
+					if 'relative_url' in n:
+							if(wa == 0):
+								temp2 = temp2+n['relative_url']
+								wa = 1
+				temp2 = "title: "+temp2+" answer:"+i['test_task']['answer']['right_answer']['string']
+				allanswers = allanswers+temp2+"\n"
+		elif i['test_task']['answer']['type'] == 'answer/single':
 			for x in i['test_task']['answer']['options']:
-				data2["answers"][i['test_task']['id']] = {"id": x['id'], "@answer_type": i['test_task']['answer']['type']}
+				if(i['test_task']['answer']['right_answer']['id'] != None):
+					if i['test_task']['answer']['right_answer']['id'] != x['id']:
+						continue
+					else:
+						data2["answers"][i['test_task']['id']] = {"id": x['id'], "@answer_type": i['test_task']['answer']['type'], "correct": 1}
+				else:
+					data2["answers"][i['test_task']['id']] = {"id": x['id'], "@answer_type": i['test_task']['answer']['type']}
 				if(checkans(data2, cookies)):
 					temp = ""
 					temp2 = ""
@@ -105,11 +146,13 @@ def get_answers(variant, c_type="spec"):
 					if x['content'] != []:
 						if x['content'][0]['type'] == "content/math":
 							x['text'] = x['text'] + math(x['content'][0]['content'])
-					temp2 = temp2+temp+" - "+x['text']
+					temp2 = "title: "+temp2+temp+" answer: "+x['text']
 					temp2 = temp2.strip()+"\n"
 					allanswers = allanswers+temp2
 		elif i['test_task']['answer']['type'] == 'answer/order':
 			c = i['test_task']['answer']['options']
+			if(i['test_task']['answer']['right_answer']['ids_order'] != None):
+				data2["answers"][i['test_task']['id']] = {"id": i['test_task']['answer']['right_answer']['ids_order'], "@answer_type": i['test_task']['answer']['type'], "correct": 1}
 			while checkans(data2, cookies) == False:
 				random.shuffle(c)
 				temp = []
@@ -128,7 +171,7 @@ def get_answers(variant, c_type="spec"):
 							if(wa == 0):
 								temp2 = temp2+n['relative_url']
 								wa = 1
-			temp2 = temp2+"- "
+			temp2 = "title: "+temp2+" answer:"
 			for x in c:
 				for b in temp:
 					if(x['id'] == b):
@@ -139,12 +182,17 @@ def get_answers(variant, c_type="spec"):
 			temp2 = temp2[:-2]
 			allanswers = allanswers+temp2+"\n"
 		elif i['test_task']['answer']['type'] == 'answer/number':
+			if(i['test_task']['answer']['right_answer']['number'] != None):
+				data2["answers"][i['test_task']['id']] = {"number": i['test_task']['answer']['right_answer']['number'], "@answer_type": i['test_task']['answer']['type'], "correct": 1}
 			for b in range(0, 100):
 				temp2 = ""
-				data2["answers"][i['test_task']['id']] = {"number": b, "@answer_type": i['test_task']['answer']['type']}
+				if(i['test_task']['answer']['right_answer']['number'] == None):
+					data2["answers"][i['test_task']['id']] = {"number": b, "@answer_type": i['test_task']['answer']['type']}
 				if(checkans(data2, cookies)):
 						temp2 = str(b)
 						break
+				else:
+					data2["answers"][i['test_task']['id']] = None
 			if(temp2 == ""):
 				b = "No answer. Out of range (0-100)."
 			temp2 = ""
@@ -154,14 +202,16 @@ def get_answers(variant, c_type="spec"):
 						temp2 = temp2+n['text'].strip()+" "
 				if n['content'] != []:
 					if(n['content'][0]['type'] == "content/math"):
-						temp = temp+math(n['content'][0]['content'])+" "
+						temp2 = temp2+math(n['content'][0]['content'])+" "
 				if 'relative_url' in n:
 						if(wa == 0):
 							temp2 = temp2+n['relative_url']
 							wa = 1
-			temp2 = temp2+"- "+str(b)
+			temp2 = "title: "+temp2+" answer:"+str(b)
 			allanswers = allanswers+temp2+"\n"
 		elif i['test_task']['answer']['type'] == 'answer/multiple':
+			if(i['test_task']['answer']['right_answer']['ids'] != None):
+				data2["answers"][i['test_task']['id']] = {"ids": i['test_task']['answer']['right_answer']['ids'], "@answer_type": i['test_task']['answer']['type'], "correct": 1}
 			c = i['test_task']['answer']['options']
 			while checkans(data2, cookies) == False:
 				data2["answers"][i['test_task']['id']] = {"ids": [], "@answer_type": i['test_task']['answer']['type']}
@@ -175,12 +225,12 @@ def get_answers(variant, c_type="spec"):
 						temp2 = temp2+n['text'].strip()+" "
 				if n['content'] != []:
 					if(n['content'][0]['type'] == "content/math"):
-						temp = temp+math(n['content'][0]['content'])+" "
+						temp2 = temp2+math(n['content'][0]['content'])+" "
 				if 'relative_url' in n:
 						if(wa == 0):
 							temp2 = temp2+n['relative_url']
 							wa = 1
-			temp2 = temp2+" - "
+			temp2 = "title: "+temp2+" answer:"
 			for x in c:
 				for b in data2["answers"][i['test_task']['id']]['ids']:
 					if(x['id'] == b):
@@ -191,16 +241,18 @@ def get_answers(variant, c_type="spec"):
 			temp2 = temp2[:-2]
 			allanswers = allanswers+temp2+"\n"
 		elif i['test_task']['answer']['type'] == 'answer/groups':
-			'''while checkans(data2, cookies) == False:
+			while checkans(data2, cookies) == False:
 				data2["answers"][i['test_task']['id']] = {"groups": [], "@answer_type": i['test_task']['answer']['type']}
 				for b in i['test_task']['answer']['options']:
 					if('type' in b and b['type'] == 'option_type/group'):
 						data2["answers"][i['test_task']['id']]['groups'].append({"group_id": b['id'], "options_ids": []})
 				for x in i['test_task']['answer']['options']:
 					data2["answers"][i['test_task']['id']]['groups'][random.randint(0, len(data2["answers"][i['test_task']['id']]['groups'])-1)]['options_ids'].append(x['id'])
-				print(data2["answers"][i['test_task']['id']])'''
+				print(data2["answers"][i['test_task']['id']])
 			continue
 		elif i['test_task']['answer']['type'] == 'answer/match':
+			if(i['test_task']['answer']['right_answer']['match'] != None):
+				data2["answers"][i['test_task']['id']] = {"match": i['test_task']['answer']['right_answer']['match'], "@answer_type": i['test_task']['answer']['type'], "correct": 1}
 			while checkans(data2, cookies) == False:
 				data2["answers"][i['test_task']['id']] = {"match": {}, "@answer_type": i['test_task']['answer']['type']} 
 				c = []
@@ -232,11 +284,13 @@ def get_answers(variant, c_type="spec"):
 						if x['content'] != []:
 							if x['content'][0]['type'] == "content/math":
 								x['text'] = x['text'] + math(x['content'][0]['content'])
-						temp3 = temp3+x['text']+" - "+temp2[n[0]]+", "
+						temp3 = "title: "+temp3+x['text']+" answer:"+temp2[n[0]]+", "
 			temp3 = temp3[:-2]
 			allanswers = allanswers+temp3+"\n"
 		elif i['test_task']['answer']['type'] == 'answer/inline/choice/single':
-			temp = i['test_task']['question_elements'][0]['text']+" - "
+			if(i['test_task']['answer']['right_answer']['text_position_answer'] != None):
+				data2["answers"][i['test_task']['id']] = {"match": i['test_task']['answer']['right_answer']['text_position_answer'], "@answer_type": i['test_task']['answer']['type'], "correct": 1}
+			temp = "title: "+i['test_task']['question_elements'][0]['text']+" answer:"
 			while checkans(data2, cookies) == False:
 				data2["answers"][i['test_task']['id']] = {"text_position_answer": [], "@answer_type": i['test_task']['answer']['type']}
 				for n in i['test_task']['answer']['text_position']:
@@ -252,7 +306,7 @@ def get_answers(variant, c_type="spec"):
 			temp = temp[:-2]
 			allanswers = allanswers+temp+"\n"
 		elif i['test_task']['answer']['type'] == 'answer/gap/match/text':
-					temp = i['test_task']['question_elements'][0]['text']+" - "
+					temp = "title: "+i['test_task']['question_elements'][0]['text']+" answer:"
 					c = i['test_task']['answer']['options']
 					
 					while skip == 0 and checkans(data2, cookies) == False:
