@@ -1,24 +1,26 @@
 import requests, json, random, urllib.parse, os, hashlib, re
 
-
 def auth(demo=True):
+    # Необходимо для входа в МЭШ (переменная demo должна быть True)
     login = "ЛОГИН К МЭШ"
     password = "ПАРОЛЬ К МЭШ"
 
     f = ""
     if os.path.exists("last"):
-        f2 = open("last", "r")
-        f = f2.read()
-        f2.close()
+        with open("last", "r") as file:
+            f = file.read()
+
     if demo:
         url = "https://uchebnik.mos.ru/api/sessions/demo"
     else:
         url = "https://uchebnik.mos.ru/api/sessions"
-    if f != "":
+    
+    if f != "" and not demo:
         try:
             f = json.loads(f)
         except Exception:
             f = ""
+        
         if "id" in f:
             url2 = "https://uchebnik.mos.ru/api/users/" + str(f["id"])
             cookies = {
@@ -30,26 +32,31 @@ def auth(demo=True):
             r = requests.get(
                 url2, headers={"Content-type": "application/json"}, cookies=cookies
             )
-            if r.status_code != 200:
-                data = {
-                    "login": login,
-                    "password_hash2": hashlib.md5(password.encode()).hexdigest(),
-                }
-                r = requests.post(
-                    url,
-                    data=json.dumps(data),
-                    headers={
-                        "Content-type": "application/json",
-                        "Accept": "application/json; charset=UTF-8",
-                    },
-                )
-                if r.status_code == 200:
-                    f2 = open("last", "w")
-                    f2.write(r.text)
-                    f2.close()
-                    return json.loads(r.text)
-            else:
-                return f
+
+            return json.loads(r.text)
+              
+    else:
+        data = {
+            "login": login,
+            "password_hash2": hashlib.md5(password.encode()).hexdigest(),
+        }
+        r = requests.post(
+            url,
+            data=json.dumps(data),
+            headers={
+                "Content-type": "application/json",
+                "Accept": "application/json; charset=UTF-8",
+            },
+        )
+
+        if r.status_code == 200:
+            with open("last", "w") as file:
+                file.write(r.text)
+
+            result = json.loads(r.text)
+            return result
+
+        else: return None
 
 
 def checkans(data, cookies):
@@ -100,7 +107,7 @@ def math(string):
 
 
 # Фикс. Спасибо, https://vk.com/6x88y9
-def get_answers(variant, c_type="spec"):
+def get_answers(variant, c_type="homework"):
     allanswers = ""
 
     skip = 0
@@ -213,46 +220,21 @@ def get_answers(variant, c_type="spec"):
                     temp2 = "title: " + temp2 + temp + " answer: " + x["text"]
                     temp2 = temp2.strip() + "\n"
                     allanswers = allanswers + temp2
+        
         elif i["test_task"]["answer"]["type"] == "answer/order":
-            c = i["test_task"]["answer"]["options"]
-            if i["test_task"]["answer"]["right_answer"]["ids_order"] != None:
-                data2["answers"][i["test_task"]["id"]] = {
-                    "id": i["test_task"]["answer"]["right_answer"]["ids_order"],
-                    "@answer_type": i["test_task"]["answer"]["type"],
-                    "correct": 1,
-                }
-                temp = i["test_task"]["answer"]["right_answer"]["ids_order"]
-            while checkans(data2, cookies) == False:
-                random.shuffle(c)
-                temp = []
-                for x in c:
-                    temp.append(x["id"])
-                data2["answers"][i["test_task"]["id"]] = {
-                    "ids_order": temp,
-                    "@answer_type": i["test_task"]["answer"]["type"],
-                }
-            temp2 = ""
-            wa = 0
-            for n in i["test_task"]["question_elements"]:
-                if "text" in n:
-                    temp2 = temp2 + n["text"].strip() + " "
-                if n["content"] != []:
-                    if n["content"][0]["type"] == "content/math":
-                        temp = temp + math(n["content"][0]["content"]) + " "
-                if "relative_url" in n:
-                    if wa == 0:
-                        temp2 = temp2 + n["relative_url"]
-                        wa = 1
-            temp2 = "title: " + temp2 + " answer:"
-            for x in c:
-                for b in temp:
-                    if x["id"] == b:
-                        if x["content"] != []:
-                            if x["content"][0]["type"] == "content/math":
-                                x["text"] = x["text"] + math(x["content"][0]["content"])
-                        temp2 = temp2 + x["text"] + ", "
-            temp2 = temp2[:-2]
-            allanswers = allanswers + temp2 + "\n"
+            answer_info = i["test_task"]["answer"]
+            correct_order = answer_info["right_answer"]["ids_order"]
+
+            answer = ""
+
+            for correct_order_element in correct_order:
+                for answer_entry in answer_info["options"]:
+                    if answer_entry["id"] == correct_order_element:
+                        answer += answer_entry["text"] + ", "
+
+            allanswers += f"title: {i['test_task']['question_elements'][0]['text']}: answer: {answer[:-2]}\n"
+
+
         elif i["test_task"]["answer"]["type"] == "answer/number":
             if i["test_task"]["answer"]["right_answer"]["number"] != None:
                 data2["answers"][i["test_task"]["id"]] = {
@@ -331,16 +313,33 @@ def get_answers(variant, c_type="spec"):
                         temp2 = temp2 + x["text"] + ", "
             temp2 = temp2[:-2]
             allanswers = allanswers + temp2 + "\n"
+
+
         elif i["test_task"]["answer"]["type"] == "answer/groups":
-            """while checkans(data2, cookies) == False:
-            data2["answers"][i['test_task']['id']] = {"groups": [], "@answer_type": i['test_task']['answer']['type']}
-            for b in i['test_task']['answer']['options']:
-                    if('type' in b and b['type'] == 'option_type/group'):
-                            data2["answers"][i['test_task']['id']]['groups'].append({"group_id": b['id'], "options_ids": []})
-            for x in i['test_task']['answer']['options']:
-                    data2["answers"][i['test_task']['id']]['groups'][random.randint(0, len(data2["answers"][i['test_task']['id']]['groups'])-1)]['options_ids'].append(x['id'])
-            print(data2["answers"][i['test_task']['id']])"""
-            continue
+            answer_info = i["test_task"]["answer"]
+            correct_groups = answer_info["right_answer"]["groups"]
+
+            answer = ""
+
+            for group in correct_groups:
+                group_name = ""
+                group_elements = ""
+
+                for answer_entry in answer_info["options"]:
+                    if answer_entry["id"] in group["options_ids"]:
+                        group_elements += answer_entry["text"] + ", "
+
+                    try: 
+                        if answer_entry["type"] and answer_entry["id"] == group["group_id"]: 
+                            group_name = answer_entry["text"] 
+                    except Exception: 
+                        pass
+
+                answer += f"{group_name} -> {group_elements[:-2]}; "
+
+            allanswers += f"title: {i['test_task']['question_elements'][0]['text']}: answer: {answer[:-2]}\n"
+
+
         elif i["test_task"]["answer"]["type"] == "answer/match":
             if i["test_task"]["answer"]["right_answer"]["match"] != None:
                 data2["answers"][i["test_task"]["id"]] = {
