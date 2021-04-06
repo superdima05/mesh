@@ -21,8 +21,6 @@ def auth(demo=True):
             f = json.loads(f)
         except Exception:
             f = ""
-        
-        print(str(f))
 
         if "id" in f:
             url2 = "https://uchebnik.mos.ru/api/users/" + str(f["id"])
@@ -155,7 +153,6 @@ def get_answers(variant, c_type="homework"):
 
     data2 = {"answers": {}}
     for i in r:
-        # print(i['test_task'])
         data2["answers"][i["test_task"]["id"]] = None
 
     for i in r:
