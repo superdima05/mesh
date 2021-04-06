@@ -1,9 +1,10 @@
 import requests, json, random, urllib.parse, os, hashlib, re
 
 def auth(demo=True):
-    # Необходимо для входа в МЭШ (переменная demo должна быть True)
-    login = "ЛОГИН К МЭШ"
-    password = "ПАРОЛЬ К МЭШ"
+    # Использования логина и пароля МЭШ в обычных условиях не обязательно.
+    # Рекомендуется оставить логин и пароль пустыми.
+    login = ""
+    password = ""
 
     f = ""
     if os.path.exists("last"):
@@ -21,6 +22,8 @@ def auth(demo=True):
         except Exception:
             f = ""
         
+        print(str(f))
+
         if "id" in f:
             url2 = "https://uchebnik.mos.ru/api/users/" + str(f["id"])
             cookies = {
@@ -147,6 +150,7 @@ def get_answers(variant, c_type="homework"):
         cookies=cookies,
         headers={"Content-type": "application/json"},
     )
+
     r = json.loads(r.text)["training_tasks"]
 
     data2 = {"answers": {}}
@@ -183,6 +187,8 @@ def get_answers(variant, c_type="homework"):
                     + i["test_task"]["answer"]["right_answer"]["string"]
                 )
                 allanswers = allanswers + temp2 + "\n"
+
+
         elif i["test_task"]["answer"]["type"] == "answer/single":
             for x in i["test_task"]["answer"]["options"]:
                 if i["test_task"]["answer"]["right_answer"]["id"] != None:
@@ -220,7 +226,8 @@ def get_answers(variant, c_type="homework"):
                     temp2 = "title: " + temp2 + temp + " answer: " + x["text"]
                     temp2 = temp2.strip() + "\n"
                     allanswers = allanswers + temp2
-        
+
+
         elif i["test_task"]["answer"]["type"] == "answer/order":
             answer_info = i["test_task"]["answer"]
             correct_order = answer_info["right_answer"]["ids_order"]
@@ -275,6 +282,8 @@ def get_answers(variant, c_type="homework"):
                 + str(i["test_task"]["answer"]["right_answer"]["number"])
             )
             allanswers = allanswers + temp2 + "\n"
+
+
         elif i["test_task"]["answer"]["type"] == "answer/multiple":
             if i["test_task"]["answer"]["right_answer"]["ids"] != None:
                 data2["answers"][i["test_task"]["id"]] = {
@@ -341,64 +350,26 @@ def get_answers(variant, c_type="homework"):
 
 
         elif i["test_task"]["answer"]["type"] == "answer/match":
-            if i["test_task"]["answer"]["right_answer"]["match"] != None:
-                data2["answers"][i["test_task"]["id"]] = {
-                    "match": i["test_task"]["answer"]["right_answer"]["match"],
-                    "@answer_type": i["test_task"]["answer"]["type"],
-                    "correct": 1,
-                }
-            while checkans(data2, cookies) == False:
-                data2["answers"][i["test_task"]["id"]] = {
-                    "match": {},
-                    "@answer_type": i["test_task"]["answer"]["type"],
-                }
-                c = []
-                for x in i["test_task"]["answer"]["options"]:
-                    if x["type"] == "option_type/match/source":
-                        data2["answers"][i["test_task"]["id"]]["match"][x["id"]] = []
-                    if x["type"] == "option_type/match/target":
-                        c.append(x)
-                random.shuffle(c)
-                took = []
-                for b in c:
-                    v = random.choice(
-                        list(data2["answers"][i["test_task"]["id"]]["match"].items())
-                    )
-                    while v in took:
-                        v = random.choice(
-                            list(
-                                data2["answers"][i["test_task"]["id"]]["match"].items()
-                            )
-                        )
-                    took.append(v)
-                    data2["answers"][i["test_task"]["id"]]["match"][v[0]].append(
-                        b["id"]
-                    )
-            temp2 = dict(data2["answers"][i["test_task"]["id"]]["match"])
-            temp3 = ""
-            for n in data2["answers"][i["test_task"]["id"]]["match"].items():
-                for x in i["test_task"]["answer"]["options"]:
-                    if n[1][0] == x["id"]:
-                        if x["content"] != []:
-                            if x["content"][0]["type"] == "content/math":
-                                x["text"] = x["text"] + math(x["content"][0]["content"])
-                        temp2[n[0]] = x["text"]
-            for n in data2["answers"][i["test_task"]["id"]]["match"].items():
-                for x in i["test_task"]["answer"]["options"]:
-                    if n[0] == x["id"]:
-                        if x["content"] != []:
-                            if x["content"][0]["type"] == "content/math":
-                                x["text"] = x["text"] + math(x["content"][0]["content"])
-                        temp3 = (
-                            "title: "
-                            + temp3
-                            + x["text"]
-                            + " answer:"
-                            + temp2[n[0]]
-                            + ", "
-                        )
-            temp3 = temp3[:-2]
-            allanswers = allanswers + temp3 + "\n"
+            answer_info = i["test_task"]["answer"]
+            correct_elements = answer_info["right_answer"]["match"]
+
+            answer = ""
+
+            for key, value in correct_elements.items():
+                key_name = ""
+                value_name = ""
+
+                for answer_entry in answer_info["options"]:
+                    if answer_entry["id"] == key: 
+                        key_name = answer_entry["text"]
+                    elif answer_entry["id"] == value[0]: 
+                        value_name = answer_entry["text"]
+
+                answer += f"{key_name} -> {value_name}, "
+
+            allanswers += f"title: {i['test_task']['question_elements'][0]['text']}: answer: {answer[:-2]}\n"
+
+            
         elif i["test_task"]["answer"]["type"] == "answer/inline/choice/single":
             if i["test_task"]["answer"]["right_answer"]["text_position_answer"] != None:
                 data2["answers"][i["test_task"]["id"]] = {
@@ -440,6 +411,8 @@ def get_answers(variant, c_type="homework"):
                             temp = temp + c["text"] + ", "
             temp = temp[:-2]
             allanswers = allanswers + temp + "\n"
+
+
         elif i["test_task"]["answer"]["type"] == "answer/gap/match/text":
             temp = (
                 "title: " + i["test_task"]["question_elements"][0]["text"] + " answer:"
@@ -486,7 +459,10 @@ def get_answers(variant, c_type="homework"):
                         temp = temp + b["text"] + ", "
             temp = temp[:-2]
             allanswers = allanswers + temp + "\n"
+
+
         else:
             unknown.append(i["test_task"]["answer"]["type"])
         data2["answers"][i["test_task"]["id"]] = None
+
     return allanswers, unknown
