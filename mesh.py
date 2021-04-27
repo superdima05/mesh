@@ -30,17 +30,26 @@ def get_variant (mesh_url):
     return mesh_url.split("/")[6]
 
 
-def get_answers (test_variant):
-    answers = {}
+def get_type (mesh_url):
+    if mesh_url.split("/")[7] == "homework": return "homework"
+    else: return "spec"
+
+
+def get_answers (mesh_url):
+    answers = []
     broken_types = []
     
     # Авторизируемся и отсылаем необходимые куки и данные для получения результатов
     auth_data = auth()
     url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group"
-    
+
+    # Получаем номер варианта и тип задания для последующей работы
+    test_variant = get_variant(mesh_url)
+    test_type = get_type(mesh_url)
+
     request_data = {
         "test_type": "training_test",
-        "generation_context_type": "homework",
+        "generation_context_type": test_type,
         "generation_by_id": test_variant
     }
     request_cookies = {
@@ -154,7 +163,7 @@ def get_answers (test_variant):
 
 
         if final_answer:
-            answers[question_text] = final_answer
+            answers.append([question_text, final_answer])
         else:
             broken_types.append(answer_type)
 
