@@ -67,11 +67,15 @@ def get_answers (mesh_url):
     task_contents = json.loads(task_responce.text)["training_tasks"]
     
     for question in task_contents:
-        question_text = question["test_task"]["question_elements"][0]["text"]
+        question_text = ""
         final_answer = ""
-        
+
         answer_info = question["test_task"]["answer"]
         answer_type = answer_info["type"]
+
+        # На случай если текст вопроса состоит из нескольких частей, добавляем из все
+        for question_element in question["test_task"]["question_elements"]:
+            question_text += question_element["text"] + " "        
 
         # Просматриваем каждый вид заданий и находим верный ответ
         if answer_type == "answer/single":
