@@ -111,11 +111,12 @@ def get_answers (mesh_url):
 
                     try: 
                         if answer_entry["type"] and answer_entry["id"] == group["group_id"]: 
-                            group_name = answer_entry["text"] 
+                            group_name = answer_entry["text"]
+                            final_answer += f"{group_name}:\n\t{group_elements} \n"
                     except Exception: 
                         pass
 
-                final_answer += f"\n{group_name}:\n\t{group_elements}"
+                final_answer = final_answer[:-2]
 
 
         elif answer_type == "answer/multiple":
@@ -124,7 +125,7 @@ def get_answers (mesh_url):
             for answer_id in answer_ids:
                 for answer_entry in answer_info["options"]:
                     if answer_entry["id"] == answer_id:
-                        final_answer += f"{answer_entry['text']}, "
+                        final_answer += f"{answer_entry['text']}; "
 
             final_answer = final_answer[:-2]
 
@@ -137,7 +138,7 @@ def get_answers (mesh_url):
                 
                 for entry in entry_options:
                     if entry["id"] == answer_id["id"]:
-                        final_answer += f"{entry['text']}, "
+                        final_answer += f"{entry['text']}; "
 
             final_answer = final_answer[:-2]
 
@@ -163,7 +164,14 @@ def get_answers (mesh_url):
 
 
         elif answer_type == "answer/gap/match/text":
-            pass
+            answer_ids = answer_info["right_answer"]["text_position_answer"]
+
+            for answer_id in answer_ids:
+                for answer_option in answer_info["options"]:
+                    if answer_id["id"] == answer_option["id"]: 
+                        final_answer += f"{answer_option['text']}; "
+
+            final_answer = final_answer[:-2]
 
 
         if final_answer:
