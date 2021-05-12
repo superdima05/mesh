@@ -11,6 +11,10 @@
  - Большое спасибо [kinda-cookie-monster](https://github.com/kinda-cookie-monster) за полную переработку библиотеки. [Pull request #1](https://github.com/superdima05/mesh/pull/6) [Pull request #2](https://github.com/superdima05/mesh/pull/7)
  - Большое спасибо https://vk.com/6x88y9 за фикс библиотеки. Обсуждение было [тут](https://github.com/superdima05/mesh/issues/1)
  - Большое спасибо [mishailovic](https://github.com/mishailovic) за нахождения нового endpoint в МЭШ. Обсуждение было [тут](https://github.com/superdima05/mesh/issues/3)
+
+# Проекты, основанные на этой библиотеке
+    - [Сайт](https://mash.hotaru.ga/) Разработчик: [mishailovic](https://github.com/mishailovic)
+    - [Telegram бот](https://t.me/CDSansbot) Разработчик: [zsaz](https://github.com/superdima05)
     
 # Установка и использавание ⚙️
   1. Сколнировать репозиторий `git clone https://github.com/superdima05/mesh`
