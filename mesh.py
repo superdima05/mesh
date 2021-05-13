@@ -1,7 +1,7 @@
 import requests, json, hashlib
 
 def auth (demo = True, login = "", password = ""):
-    if demo: 
+    if demo:
         url = "https://uchebnik.mos.ru/api/sessions/demo"
     else:
         url = "https://uchebnik.mos.ru/api/sessions"
@@ -35,17 +35,8 @@ def get_type (mesh_url):
     else: return "spec"
 
 
-def get_answers (mesh_url):
-    answers = []
-    broken_types = []
-    
-    # Авторизируемся и отсылаем необходимые куки и данные для получения результатов
-    auth_data = auth()
+def fetch_json (auth_data, test_variant, test_type):
     url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group"
-
-    # Получаем номер варианта и тип задания для последующей работы
-    test_variant = get_variant(mesh_url)
-    test_type = get_type(mesh_url)
 
     request_data = {
         "test_type": "training_test",
@@ -63,8 +54,19 @@ def get_answers (mesh_url):
         cookies = request_cookies,
         headers = {"Content-type": "application/json"}      
     )
+    
+    return json.loads(task_responce.text)["training_tasks"]
 
-    task_contents = json.loads(task_responce.text)["training_tasks"]
+
+def get_answers (mesh_url):
+    answers = []
+    broken_types = []
+    
+    auth_data = auth()
+    test_variant = get_variant(mesh_url)
+    test_type = get_type(mesh_url)
+
+    task_contents = fetch_json(auth_data, test_variant, test_type)
     
     for question in task_contents:
         question_text = ""
@@ -73,16 +75,18 @@ def get_answers (mesh_url):
         answer_info = question["test_task"]["answer"]
         answer_type = answer_info["type"]
 
-        # На случай если текст вопроса состоит из нескольких частей, добавляем из все
+        # На случай если текст вопроса состоит из нескольких частей, добавляем их все
         for question_element in question["test_task"]["question_elements"]:
-            question_text += question_element["text"] + " "        
+            if question_element["type"] == "content/text":
+                question_text += question_element["text"] + " "        
 
         # Просматриваем каждый вид заданий и находим верный ответ
         if answer_type == "answer/single":
             answer_id = answer_info["right_answer"]["id"]
             
             for entry in answer_info["options"]:
-                if entry["id"] == answer_id: final_answer = entry["text"]
+                if entry["id"] == answer_id: 
+                    final_answer = entry["text"]
 
         
         elif answer_type == "answer/string": 
@@ -109,14 +113,12 @@ def get_answers (mesh_url):
                     if answer_entry["id"] in group["options_ids"]:
                         group_elements += answer_entry["text"] + ",\n\t"
 
-                    try: 
-                        if answer_entry["type"] and answer_entry["id"] == group["group_id"]: 
-                            group_name = answer_entry["text"]
-                            final_answer += f"{group_name}:\n\t{group_elements} \n"
-                    except Exception: 
-                        pass
+                    elif answer_entry["id"] == group["group_id"]: 
+                        group_name = answer_entry["text"]
 
-                final_answer = final_answer[:-2]
+                final_answer += f"{group_name}:\n\t{group_elements}"
+            
+            final_answer = final_answer[:-2]
 
 
         elif answer_type == "answer/multiple":
@@ -172,7 +174,6 @@ def get_answers (mesh_url):
                         final_answer += f"{answer_option['text']}; "
 
             final_answer = final_answer[:-2]
-
 
         if final_answer:
             answers.append([question_text, final_answer])
