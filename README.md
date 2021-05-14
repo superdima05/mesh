@@ -13,8 +13,8 @@
  - Большое спасибо [mishailovic](https://github.com/mishailovic) за нахождения нового endpoint в МЭШ. Обсуждение было [тут](https://github.com/superdima05/mesh/issues/3)
 
 # Проекты, основанные на этой библиотеке
-   - [Сайт](https://mash.hotaru.ga/) Разработчик: [mishailovic](https://github.com/mishailovic)
    - [Telegram бот](https://t.me/CDSansbot) Разработчик: [zsaz](https://github.com/superdima05)
+   - [Сайт](https://mash.hotaru.ga/) Разработчик: [mishailovic](https://github.com/mishailovic)
     
 # Установка и использавание ⚙️
   1. Сколнировать репозиторий `git clone https://github.com/superdima05/mesh`
