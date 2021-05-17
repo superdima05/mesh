@@ -75,10 +75,19 @@ def get_answers (mesh_url):
         answer_info = question["test_task"]["answer"]
         answer_type = answer_info["type"]
 
-        # На случай если текст вопроса состоит из нескольких частей, добавляем их все
-        for question_element in question["test_task"]["question_elements"]:
-            if question_element["type"] == "content/text":
-                question_text += question_element["text"] + " "        
+        # Составляем условие задания
+        for que_entry in question["test_task"]["question_elements"]:
+            if que_entry["type"] == "content/text":
+                question_text += que_entry["text"] + " "
+
+            elif que_entry["type"] == "content/atomic":
+                if que_entry["atomic_type"] == "image": 
+                    url = f'(https://uchebnik.mos.ru/cms{que_entry["preview_url"]})'
+                
+                elif que_entry["atomic_type"] == "video": 
+                    url = f'({que_entry["preview_url"]})'
+
+                question_text += f"\n{url}"
 
         # Просматриваем каждый вид заданий и находим верный ответ
         if answer_type == "answer/single":
