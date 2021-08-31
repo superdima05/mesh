@@ -121,7 +121,7 @@ def generate_string (string_data):
             return f'({string_data ["preview_url"]})'
 
 
-def get_answers (url):
+def get_answers (urlб returnBorked = False):
     answers = []
     borked = []
 
@@ -240,5 +240,8 @@ def get_answers (url):
             borked.append([answer_type], question_data, answer_data)
 
         answers.append([statement, answer])
-
-    return answers, borked
+    
+    if returnBorked:
+        return answers, borked
+    else:
+        return answers
