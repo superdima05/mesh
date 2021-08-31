@@ -16,7 +16,15 @@
    - [Telegram бот](https://t.me/CDSansbot), Разработчик: [zsaz](https://github.com/superdima05)
    - [Сайт](https://mash.hotaru.ga/), Разработчик: [mishailovic](https://github.com/mishailovic)
     
-# Установка и использавание ⚙️
+# Установка ⚙️
   1. Сколнировать репозиторий `git clone https://github.com/superdima05/mesh`
   2. Скопировать файл `mesh.py` в папку к своему проекту.
   3. Добавить `import mesh` в вашем проекте
+
+# Пример
+    `
+    import mesh
+    answers = mesh.get_answers("https://uchebnik.mos.ru/exam/test/view_test/191202/")
+    for i in answers:
+        print(i[0], i[1])
+    `
