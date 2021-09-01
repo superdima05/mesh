@@ -121,7 +121,7 @@ def generate_string (string_data):
             return f'({string_data ["preview_url"]})'
 
 
-def get_answers (urlб returnBorked = False):
+def get_answers (url, returnBorked = False):
     answers = []
     borked = []
 
