@@ -237,7 +237,7 @@ def get_answers (url, returnBorked = False):
             answer = answer[:-2]
 
         else:
-            borked.append([answer_type], question_data, answer_data)
+            borked.append([answer_type, question_data, answer_data])
 
         answers.append([statement, answer])
     
