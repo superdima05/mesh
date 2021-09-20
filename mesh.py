@@ -35,8 +35,11 @@ def get_type (mesh_url):
     else: return "spec"
 
 
-def fetch_json (auth_data, test_variant, test_type):
+def fetch_json (auth_data, mesh_url):
     url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group"
+
+    test_variant = get_variant(mesh_url)
+    test_type    = get_type(mesh_url)
 
     request_data = {
         "test_type": "training_test",
@@ -48,18 +51,18 @@ def fetch_json (auth_data, test_variant, test_type):
         "profile_id": str(auth_data["id"]),
         "udacl": "resh"
     }
-    task_responce = requests.post(
+    task_response = requests.post(
         url = url,
         data = json.dumps(request_data),
         cookies = request_cookies,
         headers = {"Content-type": "application/json"}      
     )
-    
-    return json.loads(task_responce.text)
+
+    return task_response.json() 
 
 
 def convert_latex (string):
-    string = string.replace("\\", "").replace("cdot", "*")
+    string = string.replace("\\", "").replace("cdot", "*").replace("ge", ">=").replace("le", "<=")
 
     simple_transforms = {
         "\^circ"       : ["^circ", " градусов"],
@@ -74,15 +77,15 @@ def convert_latex (string):
             string = string.replace(changes [0], changes [1])
     
 
-    fraction = re.compile("dfrac{(.*?)}{(.*?)}")
+    fraction = re.compile("frac{(.*?)}{(.*?)}")
     square_root = re.compile("sqrt{(.*?)}")
     power = re.compile("(.*?)\^(.*)")
 
     for i in fraction.findall(string):
-        string = string.replace("dfrac{" + str(i[0]) + "}{" + str(i[1]) + "}", str(i[0]) + "/" + str(i[1]))
+        string = string.replace("frac {" + str(i[0]) + "}{" + str(i[1]) + "}", str(i[0]) + "/" + str(i[1]))
     
     for i in square_root.findall(string):
-        string = string.replace("sqrt{" + str(i) + "}", "Корень из " + str(i))
+        string = string.replace("sqrt{" + str(i) + "}", "корень из " + str(i))
     
     for i in power.findall(string):
         string = string.replace(str(i[0]) + "^" + str(i[1]), str(i[0]) + " в степени " + str(i[1]))
@@ -91,7 +94,9 @@ def convert_latex (string):
 
 
 def generate_string (string_data):
-    try:
+    parameters = string_data.keys()
+
+    if "text" in parameters:
         text = string_data ["text"]
         options = []
 
@@ -112,8 +117,8 @@ def generate_string (string_data):
             options.append(f" {option_text} ")
 
         return text.format(*options)
-    
-    except KeyError:
+   
+    elif "atomic_type" in parameters:
         if string_data ["atomic_type"] == "image": 
             return f'(https://uchebnik.mos.ru/cms{string_data ["preview_url"]})'
                 
@@ -124,12 +129,9 @@ def generate_string (string_data):
 def get_answers (url, returnBorked = False):
     answers = []
     borked = []
-
+    
     auth_data = auth()
-    task_variant = get_variant(url)
-    task_type = get_type(url)
-
-    task_answers = fetch_json(auth_data, task_variant, task_type)
+    task_answers = fetch_json(auth_data, url)
 
     for exercise in task_answers ["training_tasks"]:
         statement = ""
