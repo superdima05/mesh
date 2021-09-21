@@ -117,6 +117,9 @@ def generate_string (string_data):
             options.append(f" {option_text} ")
 
         return text.format(*options)
+
+    elif "string" in parameters:
+        return convert_latex(string_data ["string"])
    
     elif "atomic_type" in parameters:
         if string_data ["atomic_type"] == "image": 
