@@ -26,25 +26,26 @@ def auth (demo = True, login = "", password = ""):
         raise Exception("Unable to log in to uchebnik.mos.ru with provided credentials.")
 
 
-def get_variant (mesh_url):
-    return mesh_url.split("/")[6]
+def get_parameters(mesh_url):
+    params = {}
 
+    if mesh_url.split("/")[7] == "homework": params['type'] = "homework"
+    else: params['type'] = "spec"
 
-def get_type (mesh_url):
-    if mesh_url.split("/")[7] == "homework": return "homework"
-    else: return "spec"
+    params['variant'] = mesh_url.split("/")[6]
+
+    return params
 
 
 def fetch_json (auth_data, mesh_url):
     url = "https://uchebnik.mos.ru/exam/rest/secure/testplayer/group"
 
-    test_variant = get_variant(mesh_url)
-    test_type    = get_type(mesh_url)
+    params = get_parameters(mesh_url)
 
     request_data = {
         "test_type": "training_test",
-        "generation_context_type": test_type,
-        "generation_by_id": test_variant
+        "generation_context_type": params['type'],
+        "generation_by_id": params['variant']
     }
     request_cookies = {
         "auth_token": auth_data["authentication_token"],
