@@ -55,10 +55,10 @@ def fetch_json (auth_data, mesh_url):
         url = url,
         data = json.dumps(request_data),
         cookies = request_cookies,
-        headers = {"Content-type": "application/json"}      
+        headers = {"Content-type": "application/json"}
     )
 
-    return task_response.json() 
+    return task_response.json()
 
 
 def convert_latex (string):
@@ -69,13 +69,13 @@ def convert_latex (string):
         "bigtriangleup": ["bigtriangleup", "треугольник"],
         "angle"        : ["angle", "/_"],
     }
-    
+
     for regex, changes in simple_transforms.items():
         index = re.compile(regex)
 
-        for _ in index.findall(string): 
+        for _ in index.findall(string):
             string = string.replace(changes [0], changes [1])
-    
+
 
     fraction = re.compile("frac{(.*?)}{(.*?)}")
     square_root = re.compile("sqrt{(.*?)}")
@@ -83,13 +83,13 @@ def convert_latex (string):
 
     for i in fraction.findall(string):
         string = string.replace("frac {" + str(i[0]) + "}{" + str(i[1]) + "}", str(i[0]) + "/" + str(i[1]))
-    
+
     for i in square_root.findall(string):
         string = string.replace("sqrt{" + str(i) + "}", "корень из " + str(i))
-    
+
     for i in power.findall(string):
         string = string.replace(str(i[0]) + "^" + str(i[1]), str(i[0]) + " в степени " + str(i[1]))
-    
+
     return string
 
 
@@ -120,19 +120,135 @@ def generate_string (string_data):
 
     elif "string" in parameters:
         return convert_latex(string_data ["string"])
-   
+
     elif "atomic_type" in parameters:
-        if string_data ["atomic_type"] == "image": 
+        if string_data ["atomic_type"] == "image":
             return f'(https://uchebnik.mos.ru/cms{string_data ["preview_url"]})'
-                
-        elif string_data ["atomic_type"] == "video": 
+
+        elif string_data ["atomic_type"] == "video":
             return f'({string_data ["preview_url"]})'
+
+
+def answer_single(answer_data):
+    answer_id = answer_data["right_answer"]["id"]
+
+    for entry in answer_data["options"]:
+        if entry["id"] == answer_id:
+            return generate_string(entry)
+
+
+def answer_string(answer_data):
+    return generate_string(answer_data["right_answer"])
+
+
+def answer_order(answer_data):
+    answer = ''
+    order_ids = answer_data["right_answer"]["ids_order"]
+
+    for correct_order_element in order_ids:
+        for answer_entry in answer_data["options"]:
+            if answer_entry["id"] == correct_order_element:
+                answer += generate_string(answer_entry) + ", "
+    return answer
+
+
+def answer_groups(answer_data):
+    answer = ''
+    correct_groups = answer_data["right_answer"]["groups"]
+
+    for group in correct_groups:
+        group_name = ""
+        group_elements = ""
+
+        for answer_entry in answer_data["options"]:
+            if answer_entry["id"] in group["options_ids"]:
+                group_elements += generate_string(answer_entry) + ",\n\t"
+
+            elif answer_entry["id"] == group["group_id"]:
+                group_name = generate_string(answer_entry)
+
+        answer += f"{group_name}:\n\t{group_elements}"
+
+    return answer[:-2]
+
+
+def answer_multiple(answer_data):
+    answer = ''
+    answer_ids = answer_data["right_answer"]["ids"]
+
+    for answer_id in answer_ids:
+        for answer_entry in answer_data["options"]:
+            if answer_entry["id"] == answer_id:
+                answer += f"{generate_string(answer_entry)}; "
+
+    return answer[:-2]
+
+
+def answer_inline_choice_single(answer_data):
+    answer = ''
+    answer_ids = answer_data["right_answer"]["text_position_answer"]
+
+    for field_num, answer_id in enumerate(answer_ids):
+        entry_options = answer_data["text_position"][field_num]["options"]
+
+        for entry in entry_options:
+            if entry["id"] == answer_id["id"]:
+                answer += f"{generate_string(entry)}; "
+
+    return answer[:-2]
+
+
+def answer_number(answer_data):
+    return str(answer_data["right_answer"]["number"])
+
+
+def answer_match(answer_data):
+    answer = ''
+    correct_elements = answer_data["right_answer"]["match"]
+
+    for key, value in correct_elements.items():
+        key_name = ""
+        value_name = ""
+
+        for answer_entry in answer_data["options"]:
+            if answer_entry["id"] == key:
+                key_name = generate_string(answer_entry)
+            elif answer_entry["id"] == value[0]:
+                value_name = generate_string(answer_entry)
+
+        answer += f" \n{key_name}: {value_name}"
+    return answer
+
+
+def answer_gap_match_text(answer_data):
+    answer = ''
+    answer_ids = answer_data["right_answer"]["text_position_answer"]
+
+    for answer_id in answer_ids:
+        for answer_option in answer_data["options"]:
+            if answer_id["id"] == answer_option["id"]:
+                answer += f"{generate_string(answer_option)}; "
+
+    return answer[:-2]
+
+
+types_of_answers = {
+    "answer/match": answer_match,
+    "answer/order": answer_order,
+    "answer/number": answer_number,
+    "answer/groups": answer_groups,
+    "answer/string": answer_string,
+    "answer/single": answer_single,
+    "answer/multiple": answer_multiple,
+    "answer/gap/match/text": answer_gap_match_text,
+    "answer/inline/choice/single": answer_inline_choice_single,
+}
 
 
 def get_answers (url, returnBorked = False):
     answers = []
     borked = []
-    
+
     auth_data = auth()
     task_answers = fetch_json(auth_data, url)
 
@@ -147,105 +263,13 @@ def get_answers (url, returnBorked = False):
         for string_chunk in question_data:
             statement += generate_string(string_chunk)
 
-        if answer_type == "answer/single":
-            answer_id = answer_data ["right_answer"] ["id"]
-            
-            for entry in answer_data ["options"]:
-                if entry ["id"] == answer_id: 
-                    answer = generate_string(entry)
-
-        
-        elif answer_type == "answer/string": 
-            answer = generate_string(answer_data ["right_answer"])
-        
-        
-        elif answer_type == "answer/order":
-            order_ids = answer_data["right_answer"]["ids_order"]
-
-            for correct_order_element in order_ids:
-                for answer_entry in answer_data["options"]:
-                    if answer_entry["id"] == correct_order_element:
-                        answer += generate_string(answer_entry) + ", "
-
-
-        elif answer_type == "answer/groups":
-            correct_groups = answer_data["right_answer"]["groups"]
-
-            for group in correct_groups:
-                group_name = ""
-                group_elements = ""
-
-                for answer_entry in answer_data["options"]:
-                    if answer_entry["id"] in group["options_ids"]:
-                        group_elements += generate_string(answer_entry) + ",\n\t"
-
-                    elif answer_entry["id"] == group["group_id"]: 
-                        group_name = generate_string(answer_entry)
-
-                answer += f"{group_name}:\n\t{group_elements}"
-            
-            answer = answer[:-2]
-
-
-        elif answer_type == "answer/multiple":
-            answer_ids = answer_data["right_answer"]["ids"]
-
-            for answer_id in answer_ids:
-                for answer_entry in answer_data["options"]:
-                    if answer_entry["id"] == answer_id:
-                        answer += f"{generate_string(answer_entry)}; "
-
-            answer = answer[:-2]
-
-
-        elif answer_type == "answer/inline/choice/single":
-            answer_ids = answer_data["right_answer"]["text_position_answer"]
-
-            for field_num, answer_id in enumerate(answer_ids):
-                entry_options = answer_data["text_position"][field_num]["options"]
-                
-                for entry in entry_options:
-                    if entry["id"] == answer_id["id"]:
-                        answer += f"{generate_string(entry)}; "
-
-            answer = answer[:-2]
-
-
-        elif answer_type == "answer/number":
-            answer = str(answer_data["right_answer"]["number"])
-
-
-        elif answer_type == "answer/match":
-            correct_elements = answer_data["right_answer"]["match"]
-
-            for key, value in correct_elements.items():
-                key_name = ""
-                value_name = ""
-
-                for answer_entry in answer_data["options"]:
-                    if answer_entry["id"] == key: 
-                        key_name = generate_string(answer_entry)
-                    elif answer_entry["id"] == value[0]: 
-                        value_name = generate_string(answer_entry)
-
-                answer += f" \n{key_name}: {value_name}"
-
-
-        elif answer_type == "answer/gap/match/text":
-            answer_ids = answer_data["right_answer"]["text_position_answer"]
-
-            for answer_id in answer_ids:
-                for answer_option in answer_data["options"]:
-                    if answer_id["id"] == answer_option["id"]: 
-                        answer += f"{generate_string(answer_option)}; "
-
-            answer = answer[:-2]
-
+        if answer_type in types_of_answers:
+            answer = types_of_answers[answer_type](answer_data)
         else:
             borked.append([answer_type, question_data, answer_data])
 
         answers.append([statement, answer])
-    
+
     if returnBorked:
         return answers, borked
     else:
