@@ -123,10 +123,17 @@ def generate_string (string_data):
    
     elif "atomic_type" in parameters:
         if string_data ["atomic_type"] == "image": 
-            return f'(https://uchebnik.mos.ru/cms{string_data ["preview_url"]})'
+            return f' (https://uchebnik.mos.ru/cms{string_data ["preview_url"]}) '
                 
         elif string_data ["atomic_type"] == "video": 
-            return f'({string_data ["preview_url"]})'
+            return f' ({string_data ["preview_url"]}) '
+
+    elif "file" in parameters:
+        file_location = string_data ["file"] ["relative_url"]
+        return f" (https://uchebnik.mos.ru/webtests/exam{file_location}) " 
+
+    else:
+        return ""
 
 
 def get_answers (url, returnBorked = False):
