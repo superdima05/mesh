@@ -28,3 +28,7 @@
     for i in answers:
         print(i[0], i[1])
 ```
+```
+$ python mesh.py                                                                              
+Введите ссылку: https://uchebnik.mos.ru/exam/test/test_by_binding/15353985/homework/149649387
+```

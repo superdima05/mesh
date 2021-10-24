@@ -257,3 +257,11 @@ def get_answers (url, returnBorked = False):
         return answers, borked
     else:
         return answers
+
+
+if __name__ == '__main__':
+    uri = input('Введите ссылку: ').strip()
+    answers = get_answers(uri)
+    for question, answer in answers:
+        print(question)
+        print('\t', answer)
