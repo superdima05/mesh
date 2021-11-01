@@ -82,13 +82,20 @@ def fetch_description(mesh_url):
     response = task_response.json()
 
     description = {
-        "name": response["name"],
-        "description": response["description"],
+        "name": remove_soft_hypen(response["name"]),
+        "description": remove_soft_hypen(response["description"]),
         "questions_number": response["questions_per_variant_count"]
     }
 
     return description
 
+def remove_soft_hypen(sentence):
+    sentence = sentence.replace('\xad', '')
+    sentence = sentence.replace('\u00ad', '')
+    sentence = sentence.replace('\N{SOFT HYPHEN}', '')
+
+    return sentence
+    
 def convert_latex (string):
     string = string.replace("\\", "").replace("cdot", "*").replace("ge", ">=").replace("le", "<=")
 
