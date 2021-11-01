@@ -60,6 +60,7 @@ def fetch_json (auth_data, mesh_url):
 
     return task_response.json() 
 
+
 def fetch_description(mesh_url):
     auth_data = auth()
     test_variant = get_variant(mesh_url)
@@ -84,10 +85,12 @@ def fetch_description(mesh_url):
     description = {
         "name": remove_soft_hypen(response["name"]),
         "description": remove_soft_hypen(response["description"]),
-        "questions_number": response["questions_per_variant_count"]
+        "questions_number": response["questions_per_variant_count"],
+        "test_id": response ["spec_id"]
     }
 
     return description
+
 
 def remove_soft_hypen(sentence):
     sentence = sentence.replace('\xad', '')
@@ -95,7 +98,8 @@ def remove_soft_hypen(sentence):
     sentence = sentence.replace('\N{SOFT HYPHEN}', '')
 
     return sentence
-    
+
+
 def convert_latex (string):
     string = string.replace("\\", "").replace("cdot", "*").replace("ge", ">=").replace("le", "<=")
 
@@ -138,34 +142,40 @@ def generate_string (string_data):
         move_point = 0
 
         for option in string_data ["content"]:
-            insert_index = option ["position"] + move_point
-            text = text [0:insert_index] + "{}" + text [insert_index:]
-            move_point += 2
-
             option_type = option ["type"]
 
             if option_type == "content/math":
                 option_text = convert_latex(option ["content"])
             else:
                 option_text = option ["content"]
+            
+            insert_index = option ["position"] + move_point
+            text = text [:insert_index] + " " + option_text + " " + text [insert_index:]
+            move_point += 2 + len(option_text) 
 
-            options.append(f" {option_text} ")
-
-        return text.format(*options)
+        return text
 
     elif "string" in parameters:
         return convert_latex(string_data ["string"])
+
    
-    elif "atomic_type" in parameters:
-        if string_data ["atomic_type"] == "image": 
-            return f' (https://uchebnik.mos.ru/cms{string_data ["preview_url"]}) '
+    elif "atomic_id" in parameters:
+        atomic_type = string_data ["atomic_type"]
+
+        if atomic_type == "image": 
+            return ' (https://uchebnik.mos.ru/cms' + string_data ["preview_url"] + ') '
+
+        elif atomic_type == "sound":
+            return " (" + string_data ["preview_url"] + ") "
                 
-        elif string_data ["atomic_type"] == "video": 
-            return f' ({string_data ["preview_url"]}) '
+        elif atomic_type == "video": 
+            return " (" + string_data ["preview_url"] + ") "
+
 
     elif "file" in parameters:
         file_location = string_data ["file"] ["relative_url"]
         return f" (https://uchebnik.mos.ru/webtests/exam{file_location}) " 
+
 
     else:
         return ""
@@ -196,7 +206,7 @@ def get_answers (url, returnBorked = False):
                 if entry ["id"] == answer_id: 
                     answer = generate_string(entry)
 
-        
+       
         elif answer_type == "answer/string": 
             answer = generate_string(answer_data ["right_answer"])
         
@@ -283,12 +293,28 @@ def get_answers (url, returnBorked = False):
 
             answer = answer[:-2]
 
+
+        elif answer_type == "answer/table":
+            answer = ""
+            answer_dict = {}
+            
+            cell_names = answer_data ["options"] [0] ["content"] [0] ["table"] ["cells"]
+            answer_cells = answer_data ["right_answer"] ["cells"]
+             
+            for index in cell_names.keys():
+                if index in answer_cells.keys():
+                    answer_dict [index] = cell_names [index] | answer_cells [index]
+                else:
+                    answer_dict [index] = cell_names [index]
+            
+            for row in answer_dict.values():
+                values = row.values()
+                answer += "; ".join(values) + "\n\t"
+        
         else:
             borked.append([answer_type, question_data, answer_data])
 
         answers.append([statement, answer])
     
-    if returnBorked:
-        return answers, borked
-    else:
-        return answers
+    if returnBorked: return answers, borked
+    else:            return answers
