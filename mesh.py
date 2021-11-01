@@ -60,7 +60,42 @@ def fetch_json (auth_data, mesh_url):
 
     return task_response.json() 
 
+def fetch_description(mesh_url):
+    auth_data = auth()
+    test_variant = get_variant(mesh_url)
+    url = f"https://uchebnik.mos.ru/webtests/exam/rest/secure/api/spec/bind/{test_variant}"
 
+    request_cookies = {
+        "auth_token": auth_data["authentication_token"],
+        "profile_id": str(auth_data["id"]),
+        "profile_type": "student",
+        "user_id": str(auth_data["id"]),
+        "udacl": "resh"
+    }
+
+    task_response = requests.get(
+        url = url,
+        cookies = request_cookies,
+        headers = {"Content-type": "application/json"}      
+    )
+
+    response = task_response.json()
+
+    description = {
+        "name": remove_soft_hypen(response["name"]),
+        "description": remove_soft_hypen(response["description"]),
+        "questions_number": response["questions_per_variant_count"]
+    }
+
+    return description
+
+def remove_soft_hypen(sentence):
+    sentence = sentence.replace('\xad', '')
+    sentence = sentence.replace('\u00ad', '')
+    sentence = sentence.replace('\N{SOFT HYPHEN}', '')
+
+    return sentence
+    
 def convert_latex (string):
     string = string.replace("\\", "").replace("cdot", "*").replace("ge", ">=").replace("le", "<=")
 
