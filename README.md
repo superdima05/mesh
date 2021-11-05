@@ -23,10 +23,10 @@
 # Пример получения ответов на тест
 ## Python код
 ```python
-    import mesh
-    answers = mesh.get_answers("https://uchebnik.mos.ru/exam/test/view_test/191202/")
-    for i in answers:
-        print(i[0], i[1])
+import mesh
+answers = mesh.get_answers("https://uchebnik.mos.ru/exam/test/view_test/191202/")
+for i in answers:
+    print(i[0], i[1])
 ```
 
 ## launcher.py
