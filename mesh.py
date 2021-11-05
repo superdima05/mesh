@@ -55,10 +55,49 @@ def fetch_json (auth_data, mesh_url):
         url = url,
         data = json.dumps(request_data),
         cookies = request_cookies,
+        headers = {"Content-type": "application/json"}      
+    )
+
+    return task_response.json() 
+
+
+def fetch_description(mesh_url):
+    auth_data = auth()
+    test_variant = get_variant(mesh_url)
+    url = f"https://uchebnik.mos.ru/webtests/exam/rest/secure/api/spec/bind/{test_variant}"
+
+    request_cookies = {
+        "auth_token": auth_data["authentication_token"],
+        "profile_id": str(auth_data["id"]),
+        "profile_type": "student",
+        "user_id": str(auth_data["id"]),
+        "udacl": "resh"
+    }
+
+    task_response = requests.get(
+        url = url,
+        cookies = request_cookies,
         headers = {"Content-type": "application/json"}
     )
 
-    return task_response.json()
+    response = task_response.json()
+
+    description = {
+        "name": remove_soft_hypen(response["name"]),
+        "description": remove_soft_hypen(response["description"]),
+        "questions_number": response["questions_per_variant_count"],
+        "test_id": response ["spec_id"]
+    }
+
+    return description
+
+
+def remove_soft_hypen(sentence):
+    sentence = sentence.replace('\xad', '')
+    sentence = sentence.replace('\u00ad', '')
+    sentence = sentence.replace('\N{SOFT HYPHEN}', '')
+
+    return sentence
 
 
 def convert_latex (string):
@@ -69,13 +108,13 @@ def convert_latex (string):
         "bigtriangleup": ["bigtriangleup", "треугольник"],
         "angle"        : ["angle", "/_"],
     }
-
+    
     for regex, changes in simple_transforms.items():
         index = re.compile(regex)
 
-        for _ in index.findall(string):
+        for _ in index.findall(string): 
             string = string.replace(changes [0], changes [1])
-
+    
 
     fraction = re.compile("frac{(.*?)}{(.*?)}")
     square_root = re.compile("sqrt{(.*?)}")
@@ -83,50 +122,63 @@ def convert_latex (string):
 
     for i in fraction.findall(string):
         string = string.replace("frac {" + str(i[0]) + "}{" + str(i[1]) + "}", str(i[0]) + "/" + str(i[1]))
-
+    
     for i in square_root.findall(string):
         string = string.replace("sqrt{" + str(i) + "}", "корень из " + str(i))
-
+    
     for i in power.findall(string):
         string = string.replace(str(i[0]) + "^" + str(i[1]), str(i[0]) + " в степени " + str(i[1]))
-
+    
     return string
 
 
-def generate_string (string_data):
+def generate_string(string_data):
     parameters = string_data.keys()
 
     if "text" in parameters:
-        text = string_data ["text"]
+        text = string_data["text"]
         options = []
 
         move_point = 0
 
-        for option in string_data ["content"]:
-            insert_index = option ["position"] + move_point
-            text = text [0:insert_index] + "{}" + text [insert_index:]
-            move_point += 2
-
-            option_type = option ["type"]
+        for option in string_data["content"]:
+            option_type = option["type"]
 
             if option_type == "content/math":
-                option_text = convert_latex(option ["content"])
+                option_text = convert_latex(option["content"])
             else:
-                option_text = option ["content"]
+                option_text = option["content"]
 
-            options.append(f" {option_text} ")
+            insert_index = option["position"] + move_point
+            text = text[:insert_index] + " " + option_text + " " + text[insert_index:]
+            move_point += 2 + len(option_text)
 
-        return text.format(*options)
+        return text
 
     elif "string" in parameters:
-        return convert_latex(string_data ["string"])
+        return convert_latex(string_data["string"])
 
-    elif "atomic_type" in parameters:
-        if string_data ["atomic_type"] == "image":
-            return f'(https://uchebnik.mos.ru/cms{string_data ["preview_url"]})'
 
-        elif string_data ["atomic_type"] == "video":
-            return f'({string_data ["preview_url"]})'
+    elif "atomic_id" in parameters:
+        atomic_type = string_data["atomic_type"]
+
+        if atomic_type == "image":
+            return ' (https://uchebnik.mos.ru/cms' + string_data["preview_url"] + ') '
+
+        elif atomic_type == "sound":
+            return " (" + string_data["preview_url"] + ") "
+
+        elif atomic_type == "video":
+            return " (" + string_data["preview_url"] + ") "
+
+
+    elif "file" in parameters:
+        file_location = string_data["file"]["relative_url"]
+        return f" (https://uchebnik.mos.ru/webtests/exam{file_location}) "
+
+
+    else:
+        return ""
 
 
 def answer_single(answer_data):
@@ -170,6 +222,25 @@ def answer_groups(answer_data):
         answer += f"{group_name}:\n\t{group_elements}"
 
     return answer[:-2]
+
+
+def answer_table(answer_data):
+    answer = ""
+    answer_dict = {}
+
+    cell_names = answer_data["options"][0]["content"][0]["table"]["cells"]
+    answer_cells = answer_data["right_answer"]["cells"]
+
+    for index in cell_names.keys():
+        if index in answer_cells.keys():
+            answer_dict[index] = cell_names[index] | answer_cells[index]
+        else:
+            answer_dict[index] = cell_names[index]
+
+    for row in answer_dict.values():
+        values = row.values()
+        answer += "; ".join(values) + "\n\t"
+    return answer
 
 
 def answer_multiple(answer_data):
@@ -237,6 +308,7 @@ types_of_answers = {
     "answer/order": answer_order,
     "answer/number": answer_number,
     "answer/groups": answer_groups,
+    "answer/table": answer_table,
     "answer/string": answer_string,
     "answer/single": answer_single,
     "answer/multiple": answer_multiple,
@@ -269,8 +341,6 @@ def get_answers (url, returnBorked = False):
             borked.append([answer_type, question_data, answer_data])
 
         answers.append([statement, answer])
-
-    if returnBorked:
-        return answers, borked
-    else:
-        return answers
+    
+    if returnBorked: return answers, borked
+    else:            return answers
