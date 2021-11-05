@@ -1,15 +1,8 @@
 import re, requests, json, hashlib
 
-def auth (demo = True, login = "", password = ""):
-    if demo:
-        url = "https://uchebnik.mos.ru/api/sessions/demo"
-    else:
-        url = "https://uchebnik.mos.ru/api/sessions"
-
-    session_data = {
-        "login": login,
-        "password_hash2": hashlib.md5(password.encode()).hexdigest()
-    }
+def auth ():
+    url = "https://uchebnik.mos.ru/api/sessions/demo"
+    session_data = {"login": "", "password_hash2": ""}
 
     session_response = requests.post(
         url = url,
@@ -20,10 +13,7 @@ def auth (demo = True, login = "", password = ""):
         }
     )
 
-    if session_response.status_code == 200:
-        return json.loads(session_response.text)
-    else:
-        raise Exception("Unable to log in to uchebnik.mos.ru with provided credentials.")
+    return session_response.json()
 
 
 def get_variant (mesh_url):
