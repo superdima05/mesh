@@ -83,55 +83,6 @@ def fetch_description(mesh_url):
     return description
 
 
-def generate_string(string_data):
-    parameters = string_data.keys()
-
-    if "text" in parameters:
-        text = string_data["text"]
-        options = []
-
-        move_point = 0
-
-        for option in string_data["content"]:
-            option_type = option["type"]
-
-            if option_type == "content/math":
-                option_text = convert_latex(option["content"])
-            else:
-                option_text = option["content"]
-
-            insert_index = option["position"] + move_point
-            text = text[:insert_index] + " " + option_text + " " + text[insert_index:]
-            move_point += 2 + len(option_text)
-
-        return text
-
-    elif "string" in parameters:
-        return convert_latex(string_data["string"])
-
-
-    elif "atomic_id" in parameters:
-        atomic_type = string_data["atomic_type"]
-
-        if atomic_type == "image":
-            return ' (https://uchebnik.mos.ru/cms' + string_data["preview_url"] + ') '
-
-        elif atomic_type == "sound":
-            return " (" + string_data["preview_url"] + ") "
-
-        elif atomic_type == "video":
-            return " (" + string_data["preview_url"] + ") "
-
-
-    elif "file" in parameters:
-        file_location = string_data["file"]["relative_url"]
-        return f" (https://uchebnik.mos.ru/webtests/exam{file_location}) "
-
-
-    else:
-        return ""
-
-
 def answer_single(answer_data):
     answer_id = answer_data["right_answer"]["id"]
 
