@@ -15,5 +15,11 @@ setup(
     license_file='LICENSE',
     install_requires=['requests'],
     long_description_content_type='text/markdown',
-    long_description=long_description    
+    long_description=long_description,
+    url='https://github.com/superdima05/mesh/',
+    classifiers=[
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10'
+    ]    
 )
+

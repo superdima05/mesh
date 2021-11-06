@@ -1,5 +1,11 @@
 # libmesh (mesh)
-    
+
+
+[pyversion-image]: https://img.shields.io/pypi/pyversions/libmesh
+[pyversion-url]: https://pypi.org/project/libmesh/
+[pypi-image]: https://img.shields.io/pypi/v/libmesh.svg?style=flat
+[pypi-url]: https://pypi.org/project/libmesh/
+
 # Текущий статус 🗿
   [:heavy_check_mark:] Библиотека в рабочем состоянии (06.11.2021).
     
