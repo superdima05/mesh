@@ -1,5 +1,5 @@
 import re, requests, json, hashlib
-from answers import *
+from mesh.answers import *
 
 def auth (demo = True, login = "", password = ""):
     if demo:
