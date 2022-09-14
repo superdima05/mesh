@@ -1,10 +1,16 @@
 import re, requests, json, hashlib
 from mesh.answers import *
 
+def auth (demo = True, login = "", password = ""):
+    if demo:
+        url = "https://uchebnik.mos.ru/api/sessions/demo"
+    else:
+        url = "https://uchebnik.mos.ru/api/sessions"
 
-def auth ():
-    url = "https://uchebnik.mos.ru/api/sessions/demo"
-    session_data = {"login": "", "password_hash2": ""}
+    session_data = {
+        "login": login,
+        "password_hash2": hashlib.md5(password.encode()).hexdigest()
+    }
 
     session_response = requests.post(
         url = url,
@@ -15,7 +21,29 @@ def auth ():
         }
     )
 
-    return session_response.json()
+    if session_response.status_code == 200:
+        return json.loads(session_response.text)
+    else:
+        raise Exception("Unable to log in to uchebnik.mos.ru with provided credentials.")
+
+
+def get_single_answer_task(auth_data, mesh_url):
+    task_id = re.search('[\d]+', mesh_url)
+    if not task_id: raise ValueError
+    url = f'https://uchebnik.mos.ru/exam/rest/secure/task/{task_id[0]}'
+
+    request_cookies = {
+        "auth_token": auth_data["authentication_token"],
+        "profile_id": str(auth_data["id"]),
+        "udacl": "resh"
+    }
+
+    task_response = requests.get(
+        url = url,
+        cookies = request_cookies,
+        headers = {"Content-type": "application/json"}
+    )
+    return [task_response.json()]
 
 
 def get_variant (mesh_url):
@@ -50,7 +78,7 @@ def fetch_json (auth_data, mesh_url):
         headers = {"Content-type": "application/json"}      
     )
 
-    return task_response.json() 
+    return task_response.json()['training_tasks']
 
 
 def fetch_description(mesh_url):
@@ -102,10 +130,15 @@ def get_answers (url, returnBorked = False):
     answers = []
     borked = []
 
-    auth_data = auth()
-    task_answers = fetch_json(auth_data, url)
 
-    for exercise in task_answers ["training_tasks"]:
+    if re.search('material_view/atomic_objects|training_task', url):
+        auth_data = auth(demo=False)
+        task_answers = get_single_answer_task(auth_data, url)
+    else:
+        auth_data = auth()
+        task_answers = fetch_json(auth_data, url)
+
+    for exercise in task_answers:
         statement = ""
         answer = ""
 
